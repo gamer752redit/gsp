@@ -9,8 +9,9 @@
         body { background-color: #0f172a; color: #f8fafc; }
         .file-card { transition: all 0.2s ease-in-out; }
         .file-card:hover { transform: scale(1.01); background-color: #1e293b; }
-        #previewModal { backdrop-filter: blur(8px); }
-        .preview-content img, .preview-content video { max-height: 70vh; margin: auto; }
+        #previewModal { backdrop-filter: blur(12px); }
+        .preview-content img, .preview-content video { max-height: 75vh; margin: auto; object-fit: contain; }
+        .iframe-container { width: 100%; height: 75vh; background: white; border-radius: 12px; overflow: hidden; }
         pre { white-space: pre-wrap; word-wrap: break-word; }
         audio::-webkit-media-controls-panel { background-color: #1e293b; }
     </style>
@@ -41,13 +42,13 @@
         </div>
     </div>
 
-    <div id="previewModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80">
-        <div class="bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl border border-slate-700 overflow-hidden flex flex-col shadow-2xl">
+    <div id="previewModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-2 md:p-6 bg-black/90">
+        <div class="bg-slate-900 w-full max-w-6xl max-h-[95vh] rounded-3xl border border-slate-700 overflow-hidden flex flex-col shadow-2xl">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
-                <h2 id="modalTitle" class="font-bold truncate text-slate-200 text-sm md:text-base">Vorschau</h2>
+                <h2 id="modalTitle" class="font-bold truncate text-slate-200 text-sm md:text-base pr-4">Vorschau</h2>
                 <button onclick="closePreview()" class="text-slate-400 hover:text-white p-2 text-2xl transition-colors">&times;</button>
             </div>
-            <div id="modalBody" class="p-6 overflow-auto flex-grow preview-content flex flex-col items-center justify-center bg-slate-950/50">
+            <div id="modalBody" class="p-4 md:p-6 overflow-auto flex-grow preview-content flex flex-col items-center justify-center bg-slate-950/30">
                 </div>
         </div>
     </div>
@@ -84,8 +85,8 @@
             const ext = filename.split('.').pop().toLowerCase();
             const icons = {
                 mp3: '🎵', wav: '🎵', flac: '🎵', ogg: '🎵', m4a: '🎵',
-                mp4: '🎬', webm: '🎬', mov: '🎬', avi: '🎬',
-                jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', svg: '🖼️', avif: '🖼️',
+                mp4: '🎬', webm: '🎬', mov: '🎬',
+                jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', svg: '🖼️', avif: '🖼️', webp: '🖼️',
                 pdf: '📄', txt: '📝', md: '📝', js: '⚙️', html: '🌐', css: '🎨', json: '📋'
             };
             return icons[ext] || '📄';
@@ -133,14 +134,23 @@
             modalTitle.innerText = name;
             modalBody.innerHTML = '<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>';
             previewModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
 
-            // Bildvorschau (inklusive AVIF)
-            if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'avif'].includes(ext)) {
-                modalBody.innerHTML = `<img src="${url}" class="rounded-lg shadow-xl" alt="Preview">`;
+            // Bildvorschau (inkl. WebP, AVIF, JPG)
+            if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'avif', 'webp'].includes(ext)) {
+                modalBody.innerHTML = `<img src="${url}" class="rounded-lg shadow-2xl" alt="Preview">`;
             } 
+            // HTML Live Website Vorschau
+            else if (ext === 'html') {
+                modalBody.innerHTML = `
+                    <div class="iframe-container shadow-2xl border border-slate-700">
+                        <iframe src="${url}" class="w-full h-full" sandbox="allow-scripts allow-same-origin"></iframe>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2 italic">Website-Vorschau wird direkt geladen...</p>`;
+            }
             // Videovorschau
             else if (['mp4', 'webm', 'ogg'].includes(ext)) {
-                modalBody.innerHTML = `<video controls class="w-full rounded-lg" src="${url}"></video>`;
+                modalBody.innerHTML = `<video controls class="w-full rounded-lg shadow-2xl" src="${url}"></video>`;
             } 
             // Audiovorschau
             else if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) {
@@ -148,27 +158,27 @@
                     <div class="text-center w-full max-w-md p-8 bg-slate-800 rounded-3xl border border-slate-700 shadow-xl">
                         <div class="text-6xl mb-6">🎵</div>
                         <audio controls class="w-full" src="${url}"></audio>
-                        <p class="mt-4 text-sm text-slate-400">Audio-Wiedergabe</p>
                     </div>`;
             }
-            // Textvorschau
-            else if (['txt', 'js', 'css', 'html', 'md', 'json'].includes(ext)) {
+            // Code/Text Vorschau
+            else if (['txt', 'js', 'css', 'md', 'json'].includes(ext)) {
                 try {
                     const res = await fetch(url);
                     const text = await res.text();
                     modalBody.innerHTML = `<pre class="text-left w-full p-4 bg-slate-900 text-blue-300 rounded-lg text-sm font-mono border border-slate-800 overflow-x-auto">${escapeHtml(text)}</pre>`;
                 } catch (e) {
-                    modalBody.innerHTML = '<p class="text-red-400">Inhalt konnte nicht geladen werden.</p>';
+                    modalBody.innerHTML = '<p class="text-red-400">Fehler beim Laden.</p>';
                 }
             } 
             else {
-                modalBody.innerHTML = `<div class="text-center"><p class="text-4xl mb-4">${getIcon(name)}</p><p class="text-slate-400">Keine Vorschau für diesen Dateityp verfügbar.</p></div>`;
+                modalBody.innerHTML = `<div class="text-center"><p class="text-4xl mb-4">${getIcon(name)}</p><p class="text-slate-400">Keine Vorschau verfügbar.</p></div>`;
             }
         }
 
         function closePreview() {
             previewModal.classList.add('hidden');
             modalBody.innerHTML = '';
+            document.body.style.overflow = 'auto';
         }
 
         function escapeHtml(text) {
