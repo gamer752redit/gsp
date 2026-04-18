@@ -12,6 +12,7 @@
         #previewModal { backdrop-filter: blur(8px); }
         .preview-content img, .preview-content video { max-height: 70vh; margin: auto; }
         pre { white-space: pre-wrap; word-wrap: break-word; }
+        audio::-webkit-media-controls-panel { background-color: #1e293b; }
     </style>
 </head>
 <body class="p-4 md:p-10">
@@ -43,10 +44,10 @@
     <div id="previewModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/80">
         <div class="bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-3xl border border-slate-700 overflow-hidden flex flex-col shadow-2xl">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
-                <h2 id="modalTitle" class="font-bold truncate text-slate-200">Vorschau</h2>
-                <button onclick="closePreview()" class="text-slate-400 hover:text-white p-2 text-2xl">&times;</button>
+                <h2 id="modalTitle" class="font-bold truncate text-slate-200 text-sm md:text-base">Vorschau</h2>
+                <button onclick="closePreview()" class="text-slate-400 hover:text-white p-2 text-2xl transition-colors">&times;</button>
             </div>
-            <div id="modalBody" class="p-6 overflow-auto flex-grow preview-content flex items-center justify-center bg-slate-950/50">
+            <div id="modalBody" class="p-6 overflow-auto flex-grow preview-content flex flex-col items-center justify-center bg-slate-950/50">
                 </div>
         </div>
     </div>
@@ -82,10 +83,10 @@
         function getIcon(filename) {
             const ext = filename.split('.').pop().toLowerCase();
             const icons = {
-                mp3: '🎵', wav: '🎵', flac: '🎵', ogg: '🎵',
-                mp4: '🎬', mov: '🎬', avi: '🎬', mkv: '🎬', webm: '🎬',
-                jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', svg: '🖼️',
-                pdf: '📄', txt: '📝', md: '📝', js: '⚙️', html: '🌐', css: '🎨'
+                mp3: '🎵', wav: '🎵', flac: '🎵', ogg: '🎵', m4a: '🎵',
+                mp4: '🎬', webm: '🎬', mov: '🎬', avi: '🎬',
+                jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', svg: '🖼️', avif: '🖼️',
+                pdf: '📄', txt: '📝', md: '📝', js: '⚙️', html: '🌐', css: '🎨', json: '📋'
             };
             return icons[ext] || '📄';
         }
@@ -96,7 +97,7 @@
                 return;
             }
 
-            fileListContainer.innerHTML = files.map((file, index) => {
+            fileListContainer.innerHTML = files.map((file) => {
                 const fileSize = file.size > 1024 * 1024 
                     ? (file.size / (1024 * 1024)).toFixed(2) + ' MB' 
                     : (file.size / 1024).toFixed(1) + ' KB';
@@ -133,19 +134,31 @@
             modalBody.innerHTML = '<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>';
             previewModal.classList.remove('hidden');
 
-            if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(ext)) {
+            // Bildvorschau (inklusive AVIF)
+            if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'avif'].includes(ext)) {
                 modalBody.innerHTML = `<img src="${url}" class="rounded-lg shadow-xl" alt="Preview">`;
             } 
+            // Videovorschau
             else if (['mp4', 'webm', 'ogg'].includes(ext)) {
                 modalBody.innerHTML = `<video controls class="w-full rounded-lg" src="${url}"></video>`;
             } 
+            // Audiovorschau
+            else if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) {
+                modalBody.innerHTML = `
+                    <div class="text-center w-full max-w-md p-8 bg-slate-800 rounded-3xl border border-slate-700 shadow-xl">
+                        <div class="text-6xl mb-6">🎵</div>
+                        <audio controls class="w-full" src="${url}"></audio>
+                        <p class="mt-4 text-sm text-slate-400">Audio-Wiedergabe</p>
+                    </div>`;
+            }
+            // Textvorschau
             else if (['txt', 'js', 'css', 'html', 'md', 'json'].includes(ext)) {
                 try {
                     const res = await fetch(url);
                     const text = await res.text();
-                    modalBody.innerHTML = `<pre class="text-left w-full p-4 bg-slate-900 text-blue-300 rounded-lg text-sm font-mono border border-slate-800">${escapeHtml(text)}</pre>`;
+                    modalBody.innerHTML = `<pre class="text-left w-full p-4 bg-slate-900 text-blue-300 rounded-lg text-sm font-mono border border-slate-800 overflow-x-auto">${escapeHtml(text)}</pre>`;
                 } catch (e) {
-                    modalBody.innerHTML = '<p class="text-red-400">Text konnte nicht geladen werden.</p>';
+                    modalBody.innerHTML = '<p class="text-red-400">Inhalt konnte nicht geladen werden.</p>';
                 }
             } 
             else {
