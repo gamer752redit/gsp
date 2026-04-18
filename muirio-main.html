@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Muirios Website</title>
+    <link rel="icon" type="image/png" href="https://mc-heads.net/avatar/Muirio72">
+
+    <style>
+        :root {
+            --bg-color: #0a0a0c;
+            --grid-color: rgba(160, 32, 240, 0.15);
+            --accent-glow: radial-gradient(circle at center, #1a0a1e 0%, #0a0a0c 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(160, 32, 240, 0.2);
+            --purple-glow: #a020f0;
+            --purple-light: #d8b4fe;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            background-image: var(--accent-glow);
+            min-height: 100vh;
+            color: white;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 30px 30px;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            50% { opacity: 1; }
+            100% { opacity: 0.98; }
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.4) 100%);
+            z-index: -1;
+            animation: flicker 4s infinite;
+            pointer-events: none;
+        }
+
+        .content-wrapper {
+            max-width: 800px;
+            width: 90%;
+            margin-top: 100px;
+            margin-bottom: 50px;
+            text-align: center;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        h1 {
+            font-size: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            color: var(--purple-glow);
+            text-shadow: 0 0 15px var(--purple-glow);
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: var(--purple-glow);
+            border-bottom: 2px solid var(--purple-glow);
+            display: inline-block;
+            padding-bottom: 5px;
+            margin-bottom: 20px;
+        }
+
+        h3, h4 {
+            line-height: 1.6;
+            font-weight: 300;
+            color: var(--purple-light);
+        }
+
+        .info-text {
+            color: #bbb;
+            font-style: italic;
+        }
+
+        .profile-info {
+            text-align: left;
+            display: inline-block;
+        }
+
+        /* --- BURGER MENÜ CSS --- */
+        .menu-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .burger-icon {
+            width: 35px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 1100;
+            position: relative;
+        }
+
+        .burger-icon span {
+            display: block;
+            width: 100%;
+            height: 4px;
+            background-color: var(--purple-glow);
+            border-radius: 10px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .nav-overlay {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 250px;
+            height: 100vh;
+            background: rgba(15, 5, 20, 0.95);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid var(--glass-border);
+            padding-top: 80px;
+            transition: right 0.4s ease;
+        }
+
+        .nav-overlay.open {
+            right: 0;
+        }
+
+        .nav-overlay ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .nav-overlay li {
+            padding: 20px 40px;
+        }
+
+        .nav-overlay a {
+            color: white;
+            text-decoration: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+
+        .nav-overlay a:hover {
+            color: var(--purple-glow);
+            text-shadow: 0 0 10px var(--purple-glow);
+        }
+
+        .burger-icon.active span:nth-child(1) { transform: translateY(13px) rotate(45deg); }
+        .burger-icon.active span:nth-child(2) { opacity: 0; }
+        .burger-icon.active span:nth-child(3) { transform: translateY(-13px) rotate(-45deg); }
+    </style>
+</head>
+
+<body>
+
+    <div class="menu-container">
+        <div class="burger-icon" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <nav id="side-menu" class="nav-overlay">
+            <ul>
+                <li><a href="#ueber-mich">Über Mich</a></li>
+                <li><a href="https://muirio.netlify.app/magic-hystory/">Magic History</a></li>
+                <li><a href="#videos">Videos</a></li>
+                <li><a href="#top-animes">Top Animes</a></li>
+                <li><a href="#links">Meine Links</a></li>
+                <li><a href="#geheim">Geheim</a></li>
+                <li><a href="https://muirio.netlify.app/impressum/">Impressum</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="content-wrapper">
+        <header class="glass-card">
+            <h1>Willkommen</h1>
+            <h4>
+                Hier sind immer die ersten Infos,<br>
+                was Magic HISTORY und meine Videos angeht.<br>
+                <span class="info-text">Ich bitte bei Fehlern sich bei mir zu melden.</span>
+            </h4>
+        </header>
+
+        <section id="ueber-mich" class="glass-card">
+            <h2>ÜBER MICH</h2>
+            <br>
+            <div class="profile-info">
+                <h3>
+                    👤 <strong>Name</strong>: Muirio<br>
+                    🎂 <strong>Alter</strong>: Jugendlicher<br>
+                    🎮 <strong>Discord</strong>: muirio.<br>
+                    🎨 <strong>Hobbys</strong>: Singen, Coden, Fußball, Minecraft, etc.<br>
+                    😊 <strong>Was ich noch sagen will</strong>: Ich bin ein sehr kooperativer Jugendlicher und freue mich über jede Nachricht. Da ich ein großer Anime-Fan bin, könnt ihr mir eure Tier-Lists gerne senden – ich freue mich! 🎌
+                </h3>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        function toggleMenu() {
+            document.querySelector('.burger-icon').classList.toggle('active');
+            document.getElementById('side-menu').classList.toggle('open');
+        }
+    </script>
+
+</body>
+</html>
