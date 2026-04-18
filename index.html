@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Media File Share</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; }
+        .file-card:hover { transform: translateY(-2px); transition: all 0.2s; }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-blue-400 mb-2">Media Library</h1>
+            <p class="text-slate-400">Teile deine MP3, MP4 und Dokumente direkt aus GitHub.</p>
+        </header>
+
+        <!-- Suchleiste -->
+        <div class="relative mb-6">
+            <input type="text" id="searchInput" placeholder="Dateien suchen..." 
+                class="w-full p-4 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+        </div>
+
+        <!-- Dateiliste -->
+        <div id="fileList" class="grid gap-4">
+            <div class="animate-pulse text-center p-10">Lade Dateien...</div>
+        </div>
+    </div>
+
+    <script>
+        // --- KONFIGURATION ---
+        const repoOwner = "DEIN_GITHUB_USERNAME";
+        const repoName = "DEIN_REPO_NAME";
+        const branch = "main"; // oder 'master'
+        // ---------------------
+
+        const fileListContainer = document.getElementById('fileList');
+        const searchInput = document.getElementById('searchInput');
+        let allFiles = [];
+
+        async function fetchFiles() {
+            try {
+                const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/`);
+                const data = await response.json();
+                
+                // Filtere Media-Dateien (erweitere die Liste nach Bedarf)
+                const mediaExtensions = ['.mp3', '.mp4', '.wav', '.mov', '.pdf', '.png', '.jpg'];
+                allFiles = data.filter(file => 
+                    file.type === 'file' && 
+                    mediaExtensions.some(ext => file.name.toLowerCase().endsWith(ext)) &&
+                    file.name !== 'index.html'
+                );
+
+                renderFiles(allFiles);
+            } catch (error) {
+                fileListContainer.innerHTML = `<p class="text-red-400">Fehler beim Laden: ${error.message}</p>`;
+            }
+        }
+
+        function renderFiles(files) {
+            if (files.length === 0) {
+                fileListContainer.innerHTML = '<p class="text-slate-500 text-center">Keine Dateien gefunden.</p>';
+                return;
+            }
+
+            fileListContainer.innerHTML = files.map(file => {
+                const isAudio = file.name.endsWith('.mp3');
+                const isVideo = file.name.endsWith('.mp4');
+                const icon = isAudio ? '🎵' : isVideo ? '🎬' : '📄';
+
+                return `
+                    <div class="file-card bg-slate-800 p-4 rounded-xl border border-slate-700 flex items-center justify-between shadow-lg">
+                        <div class="flex items-center space-x-4 overflow-hidden">
+                            <span class="text-2xl">${icon}</span>
+                            <div class="truncate">
+                                <h3 class="font-medium truncate">${file.name}</h3>
+                                <p class="text-xs text-slate-500">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <a href="${file.download_url}" target="_blank" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Suchfunktion
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allFiles.filter(file => file.name.toLowerCase().includes(term));
+            renderFiles(filtered);
+        });
+
+        fetchFiles();
+    </script>
+</body>
+</html>
