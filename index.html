@@ -11,7 +11,7 @@
         .file-card:hover { transform: scale(1.01); background-color: #1e293b; }
         #previewModal { backdrop-filter: blur(12px); }
         .preview-content img, .preview-content video { max-height: 75vh; margin: auto; object-fit: contain; }
-        .iframe-container { width: 100%; height: 75vh; background: white; border-radius: 12px; overflow: hidden; }
+        .iframe-container { width: 100%; height: 75vh; background: white; border-radius: 12px; overflow: hidden; position: relative; }
         pre { white-space: pre-wrap; word-wrap: break-word; }
         audio::-webkit-media-controls-panel { background-color: #1e293b; }
     </style>
@@ -23,7 +23,7 @@
             <h1 class="text-4xl font-extrabold text-white tracking-tight mb-2">
                 File <span class="text-blue-500">Share</span>
             </h1>
-            <p class="text-slate-400">Alle Dateien</p>
+            <p class="text-slate-400">Alle Dateien von <span class="text-slate-200">gamer752</span></p>
         </header>
 
         <div class="relative mb-8">
@@ -45,7 +45,10 @@
     <div id="previewModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-2 md:p-6 bg-black/90">
         <div class="bg-slate-900 w-full max-w-6xl max-h-[95vh] rounded-3xl border border-slate-700 overflow-hidden flex flex-col shadow-2xl">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
-                <h2 id="modalTitle" class="font-bold truncate text-slate-200 text-sm md:text-base pr-4">Vorschau</h2>
+                <div class="flex items-center space-x-3 overflow-hidden">
+                    <span id="modalIcon" class="text-xl"></span>
+                    <h2 id="modalTitle" class="font-bold truncate text-slate-200 text-sm md:text-base pr-4">Vorschau</h2>
+                </div>
                 <button onclick="closePreview()" class="text-slate-400 hover:text-white p-2 text-2xl transition-colors">&times;</button>
             </div>
             <div id="modalBody" class="p-4 md:p-6 overflow-auto flex-grow preview-content flex flex-col items-center justify-center bg-slate-950/30">
@@ -62,12 +65,13 @@
         const previewModal = document.getElementById('previewModal');
         const modalBody = document.getElementById('modalBody');
         const modalTitle = document.getElementById('modalTitle');
+        const modalIcon = document.getElementById('modalIcon');
         let allFiles = [];
 
         async function fetchFiles() {
             try {
                 const response = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}/contents/`);
-                if (!response.ok) throw new Error(`GitHub API Fehler: ${response.status}`);
+                if (!response.ok) throw new Error(`Fehler: ${response.status} (API Limit?)`);
                 const data = await response.json();
                 
                 allFiles = data.filter(file => 
@@ -115,7 +119,7 @@
                             </div>
                         </div>
                         <div class="flex items-center space-x-2 shrink-0 w-full md:w-auto justify-end">
-                            <button onclick="openPreview('${file.download_url}', '${file.name}')" 
+                            <button onclick="openPreview('${file.url}', '${file.download_url}', '${file.name}')" 
                                class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-5 py-2 rounded-xl text-sm font-bold transition-all">
                                 Vorschau
                             </button>
@@ -129,45 +133,50 @@
             }).join('');
         }
 
-        async function openPreview(url, name) {
+        async function openPreview(apiUrl, downloadUrl, name) {
             const ext = name.split('.').pop().toLowerCase();
             modalTitle.innerText = name;
+            modalIcon.innerText = getIcon(name);
             modalBody.innerHTML = '<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>';
             previewModal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
 
-            // Bildvorschau (inkl. WebP, AVIF, JPG)
+            // Bilder (JPG, PNG, WEBP, AVIF)
             if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'avif', 'webp'].includes(ext)) {
-                modalBody.innerHTML = `<img src="${url}" class="rounded-lg shadow-2xl" alt="Preview">`;
+                modalBody.innerHTML = `<img src="${downloadUrl}" class="rounded-lg shadow-2xl" onerror="this.innerHTML='Bild konnte nicht geladen werden.'">`;
             } 
-            // HTML Live Website Vorschau
+            // HTML (Vorschau via Iframe)
             else if (ext === 'html') {
                 modalBody.innerHTML = `
                     <div class="iframe-container shadow-2xl border border-slate-700">
-                        <iframe src="${url}" class="w-full h-full" sandbox="allow-scripts allow-same-origin"></iframe>
+                        <iframe src="${downloadUrl}" class="w-full h-full" sandbox="allow-scripts allow-same-origin"></iframe>
                     </div>
-                    <p class="text-xs text-slate-500 mt-2 italic">Website-Vorschau wird direkt geladen...</p>`;
+                    <div class="mt-4 flex space-x-4">
+                        <p class="text-xs text-slate-500 italic">Vorschau wird geladen. Falls leer, blockiert GitHub den Zugriff.</p>
+                        <a href="${downloadUrl}" target="_blank" class="text-xs text-blue-400 underline">Im neuen Tab öffnen</a>
+                    </div>`;
             }
-            // Videovorschau
+            // Video
             else if (['mp4', 'webm', 'ogg'].includes(ext)) {
-                modalBody.innerHTML = `<video controls class="w-full rounded-lg shadow-2xl" src="${url}"></video>`;
+                modalBody.innerHTML = `<video controls class="w-full rounded-lg shadow-2xl" src="${downloadUrl}"></video>`;
             } 
-            // Audiovorschau
+            // Audio
             else if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) {
                 modalBody.innerHTML = `
                     <div class="text-center w-full max-w-md p-8 bg-slate-800 rounded-3xl border border-slate-700 shadow-xl">
                         <div class="text-6xl mb-6">🎵</div>
-                        <audio controls class="w-full" src="${url}"></audio>
+                        <audio controls class="w-full" src="${downloadUrl}"></audio>
                     </div>`;
             }
-            // Code/Text Vorschau
+            // Code/Text (Nutzt GitHub API statt raw.githubusercontent wegen CORS)
             else if (['txt', 'js', 'css', 'md', 'json'].includes(ext)) {
                 try {
-                    const res = await fetch(url);
-                    const text = await res.text();
+                    const res = await fetch(apiUrl);
+                    const data = await res.json();
+                    const text = atob(data.content); // Base64 dekodieren
                     modalBody.innerHTML = `<pre class="text-left w-full p-4 bg-slate-900 text-blue-300 rounded-lg text-sm font-mono border border-slate-800 overflow-x-auto">${escapeHtml(text)}</pre>`;
                 } catch (e) {
-                    modalBody.innerHTML = '<p class="text-red-400">Fehler beim Laden.</p>';
+                    modalBody.innerHTML = '<p class="text-red-400 text-center">Inhalt konnte nicht geladen werden (CORS oder API Fehler).</p>';
                 }
             } 
             else {
@@ -195,6 +204,11 @@
 
         previewModal.addEventListener('click', (e) => {
             if (e.target === previewModal) closePreview();
+        });
+
+        // Schließen mit ESC Taste
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closePreview();
         });
 
         fetchFiles();
