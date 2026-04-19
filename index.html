@@ -14,16 +14,56 @@
         .iframe-container { width: 100%; height: 75vh; background: white; border-radius: 12px; overflow: hidden; }
         pre { white-space: pre-wrap; word-wrap: break-word; }
         audio::-webkit-media-controls-panel { background-color: #1e293b; }
+        
+        /* Login Styles */
+        #loginScreen {
+            backdrop-filter: blur(20px);
+            z-index: 100;
+        }
     </style>
 </head>
 <body class="p-4 md:p-10">
 
-    <div class="max-w-5xl mx-auto">
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 flex items-center justify-center bg-slate-950/95 p-4">
+        <div class="max-w-md w-full bg-slate-900 border border-slate-700 p-8 rounded-3xl shadow-2xl text-center">
+            <div class="mb-6">
+                <div class="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg shadow-blue-500/20">🔒</div>
+                <h2 class="text-2xl font-bold text-white">Privater Zugriff</h2>
+                <p class="text-slate-400 mt-2 text-sm">Bitte gib den Zugangscode ein.</p>
+            </div>
+            
+            <input type="password" id="pinInput" placeholder="Code eingeben" 
+                class="w-full p-4 bg-slate-800 border border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none text-center text-2xl tracking-[1em] mb-4 transition-all">
+            
+            <button onclick="checkPin()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all active:scale-95">
+                Entsperren
+            </button>
+
+            <div class="mt-8 p-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                <p class="text-[10px] text-slate-500 leading-relaxed text-left">
+                    <strong class="text-slate-400 uppercase block mb-1">Rechtlicher Hinweis:</strong>
+                    Dies ist ein privates Dateisystem. Der Zugriff ist ausschließlich autorisierten Personen gestattet. 
+                    Alle Inhalte sind privat und nicht zur öffentlichen Verbreitung bestimmt. 
+                    Unbefugtes Herunterladen oder Teilen der Inhalte ist untersagt. 
+                    Durch die Eingabe des Codes bestätigen Sie die private Nutzung.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT (Initial versteckt) -->
+    <div id="mainContent" class="max-w-5xl mx-auto opacity-0 transition-opacity duration-500">
         <header class="mb-10 text-center md:text-left">
-            <h1 class="text-4xl font-extrabold text-white tracking-tight mb-2">
-                File <span class="text-blue-500">Share</span>
-            </h1>
-            <p class="text-slate-400">Alle Dateien von <span class="text-slate-200">gamer752</span></p>
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-4xl font-extrabold text-white tracking-tight mb-2">
+                        File <span class="text-blue-500">Share</span>
+                    </h1>
+                    <p class="text-slate-400">Alle Dateien von <span class="text-slate-200">gamer752</span></p>
+                </div>
+                <button onclick="logout()" class="text-slate-500 hover:text-red-400 text-sm transition-colors">Abmelden</button>
+            </div>
         </header>
 
         <div class="relative mb-8">
@@ -42,6 +82,7 @@
         </div>
     </div>
 
+    <!-- MODAL (Vorschau) -->
     <div id="previewModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-2 md:p-6 bg-black/90">
         <div class="bg-slate-900 w-full max-w-6xl max-h-[95vh] rounded-3xl border border-slate-700 overflow-hidden flex flex-col shadow-2xl">
             <div class="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
@@ -51,23 +92,55 @@
                 </div>
                 <button onclick="closePreview()" class="text-slate-400 hover:text-white p-2 text-2xl transition-colors">&times;</button>
             </div>
-            <div id="modalBody" class="p-4 md:p-6 overflow-auto flex-grow preview-content flex flex-col items-center justify-center bg-slate-950/30">
-                </div>
+            <div id="modalBody" class="p-4 md:p-6 overflow-auto flex-grow preview-content flex flex-col items-center justify-center bg-slate-950/30"></div>
         </div>
     </div>
 
     <script>
         const repoOwner = "gamer752redit";
         const repoName = "gsp";
+        const CORRECT_PIN = "7521";
 
+        const loginScreen = document.getElementById('loginScreen');
+        const mainContent = document.getElementById('mainContent');
+        const pinInput = document.getElementById('pinInput');
         const fileListContainer = document.getElementById('fileList');
         const searchInput = document.getElementById('searchInput');
         const previewModal = document.getElementById('previewModal');
         const modalBody = document.getElementById('modalBody');
         const modalTitle = document.getElementById('modalTitle');
         const modalIcon = document.getElementById('modalIcon');
+        
         let allFiles = [];
         let currentBlobUrl = null;
+
+        // Login Check
+        function checkPin() {
+            if (pinInput.value === CORRECT_PIN) {
+                sessionStorage.setItem('isLoggedIn', 'true');
+                showContent();
+            } else {
+                pinInput.classList.add('border-red-500', 'animate-shake');
+                pinInput.value = '';
+                setTimeout(() => pinInput.classList.remove('border-red-500', 'animate-shake'), 500);
+            }
+        }
+
+        function showContent() {
+            loginScreen.classList.add('hidden');
+            mainContent.classList.remove('opacity-0');
+            fetchFiles();
+        }
+
+        function logout() {
+            sessionStorage.removeItem('isLoggedIn');
+            location.reload();
+        }
+
+        // Enter-Key Support für Login
+        pinInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkPin();
+        });
 
         async function fetchFiles() {
             try {
@@ -114,6 +187,7 @@
             `).join('');
         }
 
+        // Preview Logik (unverändert)
         async function openPreview(apiUrl, downloadUrl, name) {
             const ext = name.split('.').pop().toLowerCase();
             modalTitle.innerText = name;
@@ -129,15 +203,11 @@
                 try {
                     const res = await fetch(apiUrl);
                     const data = await res.json();
-                    const text = decodeURIComponent(escape(atob(data.content))); // UTF-8 Support
-
+                    const text = decodeURIComponent(escape(atob(data.content)));
                     if (ext === 'html') {
                         const blob = new Blob([text], { type: 'text/html' });
                         currentBlobUrl = URL.createObjectURL(blob);
-                        modalBody.innerHTML = `
-                            <div class="iframe-container shadow-2xl border border-slate-700">
-                                <iframe src="${currentBlobUrl}" class="w-full h-full" sandbox="allow-scripts allow-same-origin"></iframe>
-                            </div>`;
+                        modalBody.innerHTML = `<div class="iframe-container shadow-2xl border border-slate-700"><iframe src="${currentBlobUrl}" class="w-full h-full" sandbox="allow-scripts allow-same-origin"></iframe></div>`;
                     } else {
                         modalBody.innerHTML = `<pre class="text-left w-full p-4 bg-slate-900 text-blue-300 rounded-lg text-sm font-mono border border-slate-800 overflow-x-auto">${escapeHtml(text)}</pre>`;
                     }
@@ -149,11 +219,7 @@
                 modalBody.innerHTML = `<video controls class="w-full rounded-lg shadow-2xl" src="${downloadUrl}"></video>`;
             } 
             else if (['mp3', 'wav', 'ogg', 'm4a'].includes(ext)) {
-                modalBody.innerHTML = `
-                    <div class="text-center w-full max-w-md p-8 bg-slate-800 rounded-3xl border border-slate-700 shadow-xl">
-                        <div class="text-6xl mb-6">🎵</div>
-                        <audio controls class="w-full" src="${downloadUrl}"></audio>
-                    </div>`;
+                modalBody.innerHTML = `<div class="text-center w-full max-w-md p-8 bg-slate-800 rounded-3xl border border-slate-700 shadow-xl"><div class="text-6xl mb-6">🎵</div><audio controls class="w-full" src="${downloadUrl}"></audio></div>`;
             } else {
                 modalBody.innerHTML = `<div class="text-center"><p class="text-4xl mb-4">${getIcon(name)}</p><p class="text-slate-400">Keine Vorschau verfügbar.</p></div>`;
             }
@@ -163,10 +229,7 @@
             previewModal.classList.add('hidden');
             modalBody.innerHTML = '';
             document.body.style.overflow = 'auto';
-            if (currentBlobUrl) {
-                URL.revokeObjectURL(currentBlobUrl);
-                currentBlobUrl = null;
-            }
+            if (currentBlobUrl) { URL.revokeObjectURL(currentBlobUrl); currentBlobUrl = null; }
         }
 
         function escapeHtml(text) {
@@ -184,7 +247,10 @@
         previewModal.addEventListener('click', (e) => { if (e.target === previewModal) closePreview(); });
         window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePreview(); });
 
-        fetchFiles();
+        // On Load Check
+        if (sessionStorage.getItem('isLoggedIn') === 'true') {
+            showContent();
+        }
     </script>
 </body>
 </html>
